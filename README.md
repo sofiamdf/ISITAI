@@ -18,15 +18,16 @@ The platform is built on a high-performance Amazon Web Services (AWS) architectu
 
 ## Repository Structure
 
+```text
 isitai/
-├── infra/            # CloudFormation templates and deployment scripts[cite: 3]
-├── backend/          # Lambda function handlers and Python modules[cite: 3]
+├── infra/            # CloudFormation templates and deployment scripts
+├── backend/          # Lambda function handlers and Python modules
 │   ├── src/isitai/   # Core backend library
-│   ├── mock_model/   # Mock model Function URL handler[cite: 3]
-│   └── tests/        # Unit and integration tests (pytest)[cite: 3]
-├── frontend/         # React + Vite TypeScript web application[cite: 3]
-├── dataset/          # Dataset processing and S3 upload scripts[cite: 3]
-└── docs/             # Technical documentation and runbooks[cite: 3]
+│   ├── mock_model/   # Mock model Function URL handler
+│   └── tests/        # Unit and integration tests (pytest)
+├── frontend/         # React + Vite TypeScript web application
+├── dataset/          # Dataset processing and S3 upload scripts
+└── docs/             # Technical documentation and runbooks
 
 ---
 
