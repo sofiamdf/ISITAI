@@ -18,7 +18,6 @@ The platform is built on a high-performance Amazon Web Services (AWS) architectu
 
 ## Repository Structure
 
-```text
 isitai/
 ├── infra/            # CloudFormation templates and deployment scripts
 ├── backend/          # Lambda function handlers and Python modules
@@ -28,7 +27,6 @@ isitai/
 ├── frontend/         # React + Vite TypeScript web application
 ├── dataset/          # Dataset processing and S3 upload scripts
 └── docs/             # Technical documentation and runbooks
-
 ---
 
 ## Tech Stack
