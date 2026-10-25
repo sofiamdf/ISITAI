@@ -1,0 +1,24 @@
+﻿# Node / Frontend
+frontend/node_modules/
+node_modules/
+frontend/dist/
+frontend/build/
+.env*.local
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# AWS & CloudFormation
+build/
+*.out.yaml
+infra/env/*.env
+!infra/env/ejemplo.env
+
+# Sistema e IDEs
+.vscode/
+.idea/
+.DS_Store
