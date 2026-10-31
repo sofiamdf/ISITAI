@@ -1,0 +1,199 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: isitai - Lambdas del backend y API HTTP
+Parameters:
+  ModelApiUrl:
+    Type: String
+    Description: URL base del modelo (mock o real), sin barra final
+  ModelApiKey:
+    Type: String
+    NoEcho: true
+  ModelId:
+    Type: String
+    Default: mock
+    Description: mock o real-xxxxxxxx; forma parte de la clave de caché
+  Models:
+    Type: String
+    Default: mlp,cnn,resnet18
+  DefaultModel:
+    Type: String
+    Default: resnet18
+    AllowedValues: [mlp, cnn, resnet18]
+  CacheEndpoint:
+    Type: String
+    Default: ''
+    Description: Endpoint de la caché Valkey. Vacío = sin caché.
+  HistoryTable:
+    Type: String
+    Default: ''
+    Description: Tabla DynamoDB del historial. Vacío = sin historial.
+  AllowedOrigin:
+    Type: String
+    Default: ''
+    Description: URL de CloudFront (https://dxxxx.cloudfront.net). Vacío en cuentas sin web publicada.
+Conditions:
+  HasWebOrigin: !Not [!Equals [!Ref AllowedOrigin, '']]
+Resources:
+  DepsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: isitai-deps
+      Description: boto3, valkey y el toolkit de ElastiCache para python3.14 arm64
+      Content: ../build/deps-layer
+      CompatibleRuntimes: [python3.14]
+      CompatibleArchitectures: [arm64]
+  AnalyzeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: isitai-analyze
+      Runtime: python3.14
+      Architectures: [arm64]
+      Handler: isitai.handlers.analyze.handler
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
+      Code: ../backend/src
+      Layers: [!Ref DepsLayer]
+      MemorySize: 512
+      Timeout: 29
+      Environment:
+        Variables:
+          MODEL_API_URL: !Ref ModelApiUrl
+          MODEL_API_KEY: !Ref ModelApiKey
+          MODEL_ID: !Ref ModelId
+          MODELS: !Ref Models
+          DEFAULT_MODEL: !Ref DefaultModel
+          CACHE_ENDPOINT: !Ref CacheEndpoint
+          HISTORY_TABLE: !Ref HistoryTable
+      Tags:
+        - Key: Project
+          Value: isitai
+  HistoryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: isitai-history
+      Runtime: python3.14
+      Architectures: [arm64]
+      Handler: isitai.handlers.history.handler
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
+      Code: ../backend/src
+      Layers: [!Ref DepsLayer]
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          HISTORY_TABLE: !Ref HistoryTable
+      Tags:
+        - Key: Project
+          Value: isitai
+  HealthFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: isitai-health
+      Runtime: python3.14
+      Architectures: [arm64]
+      Handler: isitai.handlers.health.handler
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
+      Code: ../backend/src
+      Layers: [!Ref DepsLayer]
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          MODEL_API_URL: !Ref ModelApiUrl
+          MODEL_API_KEY: !Ref ModelApiKey
+          MODEL_ID: !Ref ModelId
+          MODELS: !Ref Models
+          DEFAULT_MODEL: !Ref DefaultModel
+          CACHE_ENDPOINT: !Ref CacheEndpoint
+          HISTORY_TABLE: !Ref HistoryTable
+      Tags:
+        - Key: Project
+          Value: isitai
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: isitai-api
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: !If
+          - HasWebOrigin
+          - [!Ref AllowedOrigin, 'http://localhost:5173']
+          - ['http://localhost:5173']
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [content-type, x-session-id, x-file-name]
+        MaxAge: 600
+  AnalyzeIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt AnalyzeFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 30000
+  HistoryIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt HistoryFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 15000
+  HealthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt HealthFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 15000
+  AnalyzeRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /v1/analyze
+      Target: !Sub integrations/${AnalyzeIntegration}
+  HistoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /v1/history
+      Target: !Sub integrations/${HistoryIntegration}
+  HealthRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /v1/health
+      Target: !Sub integrations/${HealthIntegration}
+  DefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: '$default'
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingRateLimit: 10
+        ThrottlingBurstLimit: 20
+  AnalyzeInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AnalyzeFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*
+  HistoryInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HistoryFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*
+  HealthInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HealthFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*
+Outputs:
+  AnalyzeFunctionName:
+    Value: !Ref AnalyzeFunction
+  ApiUrl:
+    Value: !GetAtt HttpApi.ApiEndpoint

@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: isitai - modelo real (ONNX del proyecto de ML) detrás de una Function URL
+Parameters:
+  ModelApiKey:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: Clave que el backend manda en X-Api-Key
+Resources:
+  ModelDepsLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: isitai-model-deps
+      Description: onnxruntime, numpy y Pillow para python3.14 arm64
+      Content: ../build/model-layer
+      CompatibleRuntimes: [python3.14]
+      CompatibleArchitectures: [arm64]
+  ModelFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: isitai-model
+      Runtime: python3.14
+      Architectures: [arm64]
+      Handler: handler.handler
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
+      Code: ../backend/model_api
+      Layers: [!Ref ModelDepsLayer]
+      MemorySize: 2048
+      Timeout: 20
+      Environment:
+        Variables:
+          MODEL_API_KEY: !Ref ModelApiKey
+      Tags:
+        - Key: Project
+          Value: isitai
+  ModelUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt ModelFunction.Arn
+      AuthType: NONE
+  PermissionInvokeUrl:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ModelFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+  PermissionInvokeFunction:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ModelFunction
+      Action: lambda:InvokeFunction
+      Principal: '*'
+      InvokedViaFunctionUrl: true
+Outputs:
+  ModelUrl:
+    Value: !GetAtt ModelUrl.FunctionUrl
