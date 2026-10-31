@@ -1,0 +1,4 @@
+onnxruntime==1.31.1
+numpy==2.5.4
+# Misma versión que en el repo de ML para comprimir en jpeg
+Pillow==13.0.0

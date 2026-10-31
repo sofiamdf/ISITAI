@@ -1,0 +1,4 @@
+# boto3 va junto con botocore (que pide el toolkit) para que no queden versiones mezcladas con las del runtime
+boto3==1.43.123
+valkey==6.2.0
+developer-toolkit-elasticache==1.1.0

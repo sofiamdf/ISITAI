@@ -1,0 +1,6 @@
+-r model_api/requirements.txt
+pytest
+moto[dynamodb]
+onnx
+cfn-lint
+openapi-spec-validator
