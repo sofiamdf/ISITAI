@@ -1,0 +1,294 @@
+openapi: 3.1.0
+info:
+  title: isitai - API del backend
+  version: 1.1.0
+  description: >-
+    Rutas que consume la web. Los errores propios del backend tienen la forma Error; los que
+    genera API Gateway antes de llegar a la Lambda tienen la forma GatewayMessage. Cambios de 1.1:
+    el usuario elige el modelo con ?model=, las respuestas dicen qué modelo se usó, /v1/health
+    lista los modelos disponibles y X-Session-Id es obligatorio desde el principio.
+servers:
+  - url: https://{apiId}.execute-api.us-east-1.amazonaws.com
+    variables:
+      apiId:
+        default: abc123
+paths:
+  /v1/analyze:
+    post:
+      summary: Analiza una imagen
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: model
+          in: query
+          required: false
+          description: Modelo a usar. Si falta, el default_model de /v1/health
+          schema:
+            $ref: '#/components/schemas/ModelName'
+        - name: X-File-Name
+          in: header
+          required: false
+          description: Nombre original del archivo codificado con encodeURIComponent; se guarda truncado a 200 caracteres
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: Bytes originales de la imagen, sin recomprimir. Máximo 4 MiB (4.194.304 bytes).
+        content:
+          image/jpeg: {}
+          image/png: {}
+          image/webp: {}
+      responses:
+        '200':
+          description: Resultado del análisis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '400':
+          description: >-
+            missing_session, unknown_model, unsupported_type, expected_binary, empty_body o
+            content_mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '413':
+          description: too_large (la imagen supera 4 MiB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Límite de pedidos de API Gateway superado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayMessage'
+        '500':
+          description: internal_error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: model_error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: model_timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/history:
+    get:
+      summary: Historial de la sesión, del más nuevo al más viejo
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: cursor
+          in: query
+          description: Valor de next_cursor de la página anterior
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Una página del historial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryPage'
+        '400':
+          description: missing_session o invalid_cursor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: history_disabled (el despliegue no tiene tabla de historial)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/health:
+    get:
+      summary: Estado del modelo, la caché y el historial, y modelos disponibles para elegir
+      responses:
+        '200':
+          description: ok o degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '503':
+          description: down
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+components:
+  parameters:
+    SessionId:
+      name: X-Session-Id
+      in: header
+      required: true
+      description: UUID que genera el navegador y guarda en localStorage
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 64
+  schemas:
+    Label:
+      type: string
+      enum: [ai, real, uncertain]
+    ModelName:
+      type: string
+      enum: [mlp, cnn, resnet18]
+    AnalysisResult:
+      type: object
+      required: [request_id, sha256, label, prob_ai, prob_real, model, model_version, cache_hit, latency_ms, analyzed_at]
+      properties:
+        request_id:
+          type: string
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+        label:
+          $ref: '#/components/schemas/Label'
+        prob_ai:
+          type: number
+          minimum: 0
+          maximum: 1
+        prob_real:
+          type: number
+          minimum: 0
+          maximum: 1
+        model:
+          $ref: '#/components/schemas/ModelName'
+        model_version:
+          type: string
+        cache_hit:
+          type: boolean
+        latency_ms:
+          type: integer
+        analyzed_at:
+          type: string
+          format: date-time
+      example:
+        request_id: 6f1c2e9a-3b7d-4f0e-9d2a-1b5c8e7f4a10
+        sha256: 497790947d4666760ce38f3c00e852c71fdb66cae849bae8e9ede352719e1581
+        label: uncertain
+        prob_ai: 0.5
+        prob_real: 0.5
+        model: resnet18
+        model_version: mock-0.1
+        cache_hit: false
+        latency_ms: 842
+        analyzed_at: '2026-10-21T14:03:11.204+00:00'
+    HistoryItem:
+      type: object
+      properties:
+        requested_at:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+        sha256:
+          type: string
+        file_name:
+          type: string
+        label:
+          $ref: '#/components/schemas/Label'
+        prob_ai:
+          type: number
+        model:
+          $ref: '#/components/schemas/ModelName'
+        model_version:
+          type: string
+        cache_hit:
+          type: boolean
+        latency_ms:
+          type: integer
+    HistoryPage:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryItem'
+        next_cursor:
+          type: [string, 'null']
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, down]
+        model_id:
+          type: string
+          description: mock o real-xxxxxxxx (cambia cuando se despliegan modelos nuevos)
+        default_model:
+          $ref: '#/components/schemas/ModelName'
+        models:
+          type: array
+          description: Modelos que la web puede ofrecer; vacío si el modelo no responde
+          items:
+            type: object
+            required: [id, version]
+            properties:
+              id:
+                $ref: '#/components/schemas/ModelName'
+              version:
+                type: string
+        model:
+          type: object
+          properties:
+            reachable:
+              type: boolean
+            model_version:
+              type: [string, 'null']
+        cache:
+          type: object
+          properties:
+            reachable:
+              type: [boolean, 'null']
+              description: null si el despliegue no tiene caché
+        history:
+          type: object
+          properties:
+            reachable:
+              type: [boolean, 'null']
+              description: null si el despliegue no tiene historial
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [unsupported_type, expected_binary, empty_body, missing_session, unknown_model,
+                     content_mismatch, too_large, invalid_cursor, history_disabled, internal_error,
+                     model_error, model_timeout]
+            message:
+              type: string
+    GatewayMessage:
+      type: object
+      description: >-
+        Respuesta que arma API Gateway, no la Lambda. Por ejemplo, una ruta inexistente devuelve
+        404 con message Not Found. El cuerpo exacto del 429 no está documentado; se anota cuando se observe.
+      properties:
+        message:
+          type: string
+          examples: [Not Found]

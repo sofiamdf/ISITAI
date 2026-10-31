@@ -1,0 +1,144 @@
+openapi: 3.1.0
+info:
+  title: isitai - API del modelo
+  version: 1.1.0
+  description: >-
+    Contrato que cumplen el modelo mock (isitai-mock-model) y el modelo real (isitai-model, los ONNX
+    del proyecto de ML). El backend solo depende de lo que está escrito acá. Cambios de 1.1: el
+    pedido puede elegir el modelo (`model`) y /v1/health lista los modelos disponibles.
+paths:
+  /v1/predict:
+    post:
+      summary: Predice si una imagen fue generada por IA
+      parameters:
+        - $ref: '#/components/parameters/ApiKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image_b64, sha256, content_type]
+              properties:
+                image_b64:
+                  type: string
+                  contentEncoding: base64
+                  description: Bytes originales de la imagen en base64 estándar, sin recomprimir
+                sha256:
+                  type: string
+                  description: SHA-256 en hexadecimal (minúsculas) de esos bytes
+                content_type:
+                  type: string
+                  enum: [image/jpeg, image/png, image/webp]
+                model:
+                  $ref: '#/components/schemas/ModelName'
+      responses:
+        '200':
+          description: Predicción
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [prob_ai, model, model_version]
+                properties:
+                  prob_ai:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                    description: Probabilidad de que la imagen sea generada por IA
+                  label:
+                    type: string
+                    enum: [ai, real, uncertain]
+                    description: Opcional. Si falta, el backend lo deduce con corte en 0,5
+                  model:
+                    $ref: '#/components/schemas/ModelName'
+                  model_version:
+                    type: string
+                  inference_ms:
+                    type: integer
+              example:
+                prob_ai: 0.5
+                label: uncertain
+                model: resnet18
+                model_version: mock-0.1
+                inference_ms: 801
+        '400':
+          description: >-
+            Cuerpo inválido: no es JSON (invalid_json), falta la imagen (missing_image_b64), el
+            base64 o la imagen no se pueden leer (invalid_image) o el modelo no existe (unknown_model)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: API key ausente o incorrecta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/health:
+    get:
+      summary: Indica si los modelos están cargados y cuáles hay
+      parameters:
+        - $ref: '#/components/parameters/ApiKey'
+      responses:
+        '200':
+          description: El servicio responde
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, model_version, default_model, models]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  model_version:
+                    type: string
+                    description: Versión del modelo por defecto
+                  default_model:
+                    $ref: '#/components/schemas/ModelName'
+                  models:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, version]
+                      properties:
+                        id:
+                          $ref: '#/components/schemas/ModelName'
+                        version:
+                          type: string
+              example:
+                status: ok
+                model_version: mock-0.1
+                default_model: resnet18
+                models:
+                  - {id: mlp, version: mock-0.1}
+                  - {id: cnn, version: mock-0.1}
+                  - {id: resnet18, version: mock-0.1}
+        '401':
+          description: API key ausente o incorrecta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  parameters:
+    ApiKey:
+      name: X-Api-Key
+      in: header
+      required: true
+      schema:
+        type: string
+  schemas:
+    ModelName:
+      type: string
+      enum: [mlp, cnn, resnet18]
+      description: Arquitectura. Si el pedido no la indica, se usa default_model
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Código del error, por ejemplo unauthorized o missing_image_b64
