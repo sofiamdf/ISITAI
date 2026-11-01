@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "classes": [
+    "REAL",
+    "FAKE"
+  ],
+  "default_model": "resnet18",
+  "uncertain_band": 0.1,
+  "exported_at": "2026-10-31",
+  "preprocess_sha256": "f86577849a1b4c0e6b4ccd36a00f9d2da0f0ac05b027ded4557d38ffe7333b49",
+  "models": {
+    "mlp": {
+      "file": "mlp.onnx",
+      "version": "humo-artifact-mlp@2026-10-31",
+      "dataset": "artifact",
+      "input_size": 200,
+      "jpeg_quality": 90,
+      "input_name": "input",
+      "output_name": "logits",
+      "opset": 20,
+      "sha256": "340b168b49acd3b2b88d3f7149e9c6012eb6544265eb766d80b7bc9ef0727db9",
+      "size_mb": 15.3,
+      "parity_max_abs_diff": 8.940696716308594e-08,
+      "best_epoch": 1,
+      "val_metrics": {
+        "accuracy": 0.5437,
+        "f1": 0.5159,
+        "precision": 0.5556,
+        "recall": 0.4815,
+        "roc_auc": 0.5667,
+        "n": 6000,
+        "gpu_mb": 415.2,
+        "loss": 0.69219
+      },
+      "test_metrics": null,
+      "hyperparameters": {
+        "hidden_dims": [
+          512,
+          256,
+          128
+        ],
+        "dropout": 0.3,
+        "pool": 4,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "epochs": 1,
+        "label_smoothing": 0.0
+      },
+      "splits": {
+        "test": 15003,
+        "train": 119982,
+        "unseen": 4000,
+        "val": 15004
+      },
+      "ort_cpu": {
+        "latency_ms_p50": 0.12,
+        "latency_ms_p95": 0.26
+      }
+    },
+    "cnn": {
+      "file": "cnn.onnx",
+      "version": "humo-artifact-cnn@2026-10-31",
+      "dataset": "artifact",
+      "input_size": 200,
+      "jpeg_quality": 90,
+      "input_name": "input",
+      "output_name": "logits",
+      "opset": 20,
+      "sha256": "cb17cc826e6d39592b57e30614d9cd7b31701ce5bb3b4e41e1f0b34644ec494e",
+      "size_mb": 1.5,
+      "parity_max_abs_diff": 9.5367431640625e-07,
+      "best_epoch": 1,
+      "val_metrics": {
+        "accuracy": 0.5318,
+        "f1": 0.6688,
+        "precision": 0.5203,
+        "recall": 0.936,
+        "roc_auc": 0.5455,
+        "n": 6000,
+        "gpu_mb": 2047.1,
+        "loss": 0.74399
+      },
+      "test_metrics": null,
+      "hyperparameters": {
+        "base_channels": 32,
+        "dropout": 0.4,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "epochs": 1,
+        "label_smoothing": 0.0
+      },
+      "splits": {
+        "test": 15003,
+        "train": 119982,
+        "unseen": 4000,
+        "val": 15004
+      },
+      "ort_cpu": {
+        "latency_ms_p50": 1.18,
+        "latency_ms_p95": 1.22
+      }
+    },
+    "resnet18": {
+      "file": "resnet18.onnx",
+      "version": "humo-artifact-resnet18@2026-10-31",
+      "dataset": "artifact",
+      "input_size": 200,
+      "jpeg_quality": 90,
+      "input_name": "input",
+      "output_name": "logits",
+      "opset": 20,
+      "sha256": "b3dc98680d4fa18f963cc1591adb3de9ac4d0c558e4d33cc48462900743b9d2e",
+      "size_mb": 42.7,
+      "parity_max_abs_diff": 6.258487701416016e-07,
+      "best_epoch": 1,
+      "val_metrics": {
+        "accuracy": 0.6432,
+        "f1": 0.6568,
+        "precision": 0.6385,
+        "recall": 0.6762,
+        "roc_auc": 0.6945,
+        "n": 6000,
+        "gpu_mb": 1472.0,
+        "loss": 0.97416
+      },
+      "test_metrics": null,
+      "hyperparameters": {
+        "pretrained": true,
+        "freeze_backbone": false,
+        "dropout": 0.3,
+        "batch_size": 128,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "epochs": 1,
+        "label_smoothing": 0.0
+      },
+      "splits": {
+        "test": 15003,
+        "train": 119982,
+        "unseen": 4000,
+        "val": 15004
+      },
+      "ort_cpu": {
+        "latency_ms_p50": 2.87,
+        "latency_ms_p95": 3.16
+      }
+    }
+  }
+}
