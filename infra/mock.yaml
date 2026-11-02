@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: isitai - modelo mock que responde 50/50
+Parameters:
+  MockApiKey:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: Clave que el backend manda en X-Api-Key
+  LatencyMs:
+    Type: Number
+    Default: 800
+    Description: Demora simulada de la inferencia, en milisegundos
+Resources:
+  MockFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: isitai-mock-model
+      Runtime: python3.14
+      Architectures: [arm64]
+      Handler: handler.handler
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
+      Code: ../backend/mock_model
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          MOCK_API_KEY: !Ref MockApiKey
+          MOCK_LATENCY_MS: !Ref LatencyMs
+      Tags:
+        - Key: Project
+          Value: isitai
+  MockUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt MockFunction.Arn
+      AuthType: NONE
+  PermissionInvokeUrl:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MockFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+  PermissionInvokeFunction:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MockFunction
+      Action: lambda:InvokeFunction
+      Principal: '*'
+      InvokedViaFunctionUrl: true
+Outputs:
+  MockUrl:
+    Value: !GetAtt MockUrl.FunctionUrl
