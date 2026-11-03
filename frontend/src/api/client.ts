@@ -1,6 +1,6 @@
 import { getSessionId } from '../session';
 import { ALLOWED_TYPES, API_URL, MAX_IMAGE_BYTES, USE_FAKE_API } from './config';
-import type { AnalysisResult, Health, ModelName } from './types';
+import type { AnalysisResult, Health, HistoryItem, HistoryPage, ModelName } from './types';
 
 // ---------- Errores ----------
 
@@ -112,9 +112,22 @@ export async function analyzeImage(file: File, model?: ModelName): Promise<Analy
   return (await res.json()) as AnalysisResult;
 }
 
+// limit = cuántas filas; cursor = el next_cursor de la página anterior (para pedir la siguiente).
+export async function getHistory(limit: number, cursor?: string): Promise<HistoryPage> {
+  if (USE_FAKE_API) return fakeHistory(limit, cursor);
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  const res = await request(`/v1/history?${params}`, {
+    headers: { 'X-Session-Id': getSessionId() },
+  });
+  if (!res.ok) throw await toApiError(res);
+  return (await res.json()) as HistoryPage;
+}
+
 // ---------- Modo API falsa ----------
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const fakeStore: HistoryItem[] = []; 
 
 async function fakeHealth(): Promise<Health> {
   await sleep(300);
@@ -137,7 +150,7 @@ async function fakeAnalyze(file: File, model: ModelName = 'resnet18'): Promise<A
   await sleep(800);
   const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
   const sha256 = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  return {
+  const result: AnalysisResult = {
     request_id: crypto.randomUUID(),
     sha256,
     label: 'uncertain',
@@ -148,5 +161,28 @@ async function fakeAnalyze(file: File, model: ModelName = 'resnet18'): Promise<A
     cache_hit: false,
     latency_ms: 800,
     analyzed_at: new Date().toISOString(),
+  };
+  fakeStore.unshift({
+    requested_at: result.analyzed_at,
+    request_id: result.request_id,
+    sha256: result.sha256,
+    file_name: file.name,
+    label: result.label,
+    prob_ai: result.prob_ai,
+    model: result.model,
+    model_version: result.model_version,
+    cache_hit: result.cache_hit,
+    latency_ms: result.latency_ms,
+  });
+  return result;
+}
+
+async function fakeHistory(limit: number, cursor?: string): Promise<HistoryPage> {
+  await sleep(300);
+  const start = cursor ? Number(cursor) : 0;
+  const end = start + limit;
+  return {
+    items: fakeStore.slice(start, end),
+    next_cursor: end < fakeStore.length ? String(end) : null,
   };
 }

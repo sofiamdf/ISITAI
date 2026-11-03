@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import './App.css';
 import { analyzeImage, friendlyMessage, getHealth, validateImage } from './api/client';
 import type { AnalysisResult, Health, ModelName } from './api/types';
+import History from './components/History';
 import ImagePicker from './components/ImagePicker';
 import ResultCard from './components/ResultCard';
 import StatusBanner from './components/StatusBanner';
@@ -21,6 +22,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [historyKey, setHistoryKey] = useState(0); // al subirlo, el historial se vuelve a pedir
 
   // Al abrir la página (y cada vez que se reintenta), pedir el health.
   useEffect(() => {
@@ -60,6 +62,7 @@ export default function App() {
     setResult(null);
     try {
       setResult(await analyzeImage(file, model || undefined));
+      setHistoryKey((k) => k + 1); // el backend ya guardó este análisis: refrescar la lista
     } catch (e) {
       setError(friendlyMessage(e));
     } finally {
@@ -116,6 +119,7 @@ export default function App() {
       )}
 
       {result && <ResultCard result={result} />}
+      <History refreshKey={historyKey} />
     </main>
   );
 }
