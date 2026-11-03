@@ -34,7 +34,7 @@ class FakeTable:
 def fake_cache(monkeypatch):
     table = FakeTable()
     monkeypatch.setattr(config, 'CACHE_TABLE', 'isitai-cache-test')
-    monkeypatch.setattr(cache, '_state', {'table': None, 'disabled_until': 0.0})
+    monkeypatch.setattr(cache, '_state', {'client': None, 'disabled_until': 0.0})
     monkeypatch.setattr(cache, '_connect', lambda: table)
     return table
 
