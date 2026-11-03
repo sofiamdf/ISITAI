@@ -42,7 +42,7 @@ Resources:
       Handler: isitai.handlers.analyze.handler
       Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
       Code: ../backend/src
-      Layers: [!Ref DepsLayer]
+      
       MemorySize: 512
       Timeout: 29
       Environment:
@@ -52,7 +52,7 @@ Resources:
           MODEL_ID: !Ref ModelId
           MODELS: !Ref Models
           DEFAULT_MODEL: !Ref DefaultModel
-          CACHE_ENDPOINT: !Ref CacheEndpoint
+          CACHE_TABLE: !Ref CacheTable
           HISTORY_TABLE: !Ref HistoryTable
       Tags:
         - Key: Project
@@ -66,7 +66,7 @@ Resources:
       Handler: isitai.handlers.history.handler
       Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
       Code: ../backend/src
-      Layers: [!Ref DepsLayer]
+      
       MemorySize: 256
       Timeout: 10
       Environment:
@@ -84,7 +84,7 @@ Resources:
       Handler: isitai.handlers.health.handler
       Role: !Sub arn:aws:iam::${AWS::AccountId}:role/LabRole
       Code: ../backend/src
-      Layers: [!Ref DepsLayer]
+      
       MemorySize: 256
       Timeout: 10
       Environment:
@@ -94,7 +94,7 @@ Resources:
           MODEL_ID: !Ref ModelId
           MODELS: !Ref Models
           DEFAULT_MODEL: !Ref DefaultModel
-          CACHE_ENDPOINT: !Ref CacheEndpoint
+          CACHE_TABLE: !Ref CacheTable
           HISTORY_TABLE: !Ref HistoryTable
       Tags:
         - Key: Project
