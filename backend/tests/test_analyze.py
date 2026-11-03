@@ -14,7 +14,7 @@ def model_calls(monkeypatch):
         return {'prob_ai': 0.5, 'prob_real': 0.5, 'label': 'uncertain', 'model': model, 'model_version': 'test'}
 
     monkeypatch.setattr(model_client, 'predict', fake_predict)
-    monkeypatch.setattr(config, 'CACHE_ENDPOINT', '')
+    monkeypatch.setattr(config, 'CACHE_TABLE', '')
     monkeypatch.setattr(config, 'HISTORY_TABLE', '')
     return calls
 
@@ -74,7 +74,7 @@ def test_model_failures(monkeypatch, saved, exc, status, code):
     def boom(*args):
         raise exc
     monkeypatch.setattr(model_client, 'predict', boom)
-    monkeypatch.setattr(config, 'CACHE_ENDPOINT', '')
+    monkeypatch.setattr(config, 'CACHE_TABLE', '')
     got_status, body = call()
     assert (got_status, body['error']['code']) == (status, code) and saved == []
 
@@ -89,7 +89,7 @@ def test_unexpected_error_is_500_without_trace(model_calls, monkeypatch):
 
 def test_second_request_hits_cache(model_calls, saved, monkeypatch):
     store = {}
-    monkeypatch.setattr(config, 'CACHE_ENDPOINT', 'isitai-cache.example')
+    monkeypatch.setattr(config, 'CACHE_TABLE', 'isitai-cache.example')
     monkeypatch.setattr(cache, 'get_result', lambda key, ttl: store.get(key))
     monkeypatch.setattr(cache, 'put_result', lambda key, value, ttl: store.update({key: value}))
     _, first = call(query={'model': 'cnn'})
@@ -104,7 +104,7 @@ def test_second_request_hits_cache(model_calls, saved, monkeypatch):
 def test_cache_down_still_analyzes(model_calls, saved, monkeypatch):
     def broken():
         raise ConnectionError('caída')
-    monkeypatch.setattr(config, 'CACHE_ENDPOINT', 'isitai-cache.example')
+    monkeypatch.setattr(config, 'CACHE_TABLE', 'isitai-cache.example')
     monkeypatch.setattr(cache, '_state', {'client': None, 'disabled_until': 0.0})
     monkeypatch.setattr(cache, '_connect', broken)
     status, body = call()

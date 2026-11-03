@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Uso, desde la raíz del repo en CloudShell: bash infra/scripts/deploy_backend.sh
-# Variables opcionales: MODEL=real|mock (real por defecto), CACHE_ENDPOINT y HISTORY_TABLE
+# Variables opcionales: MODEL=real|mock (real por defecto), CACHE_TABLE y HISTORY_TABLE
 # (vacías = sin caché / sin historial), ALLOWED_ORIGIN (URL de CloudFront, para CORS)
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -47,14 +47,14 @@ if [ -f "$MANIFEST" ]; then
   DEFAULT_MODEL=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["default_model"])' "$MANIFEST")
 fi
 
-CACHE_TABLE=${CACHE_TABLE:-$(out_opt isitai-data CacheTableName)}
-HISTORY_TABLE=${HISTORY_TABLE:-$(out_opt isitai-data HistoryTableName)}
-[ -z "$CACHE_TABLE" ] && echo "Aviso: sin tabla de caché (desplegá isitai-data primero para activarla)"
+deploy isitai-data infra/data.yaml
+CACHE_TABLE=$(out isitai-data CacheTableName)
+HISTORY_TABLE=$(out isitai-data HistoryTableName)
 
 package infra/api.yaml build/api.out.yaml
 deploy isitai-api build/api.out.yaml --parameter-overrides \
   ModelApiUrl="${URL%/}" ModelApiKey="$KEY" ModelId="$MODEL_ID" DefaultModel="$DEFAULT_MODEL" \
-  CacheEndpoint="${CACHE_ENDPOINT:-}" HistoryTable="${HISTORY_TABLE:-}" AllowedOrigin="${ALLOWED_ORIGIN:-}"
+  CacheTable="$CACHE_TABLE" HistoryTable="${HISTORY_TABLE:-}" AllowedOrigin="${ALLOWED_ORIGIN:-}"
 
 API=$(out isitai-api ApiUrl)
 echo "API: $API  (modelo: $MODEL_ID)"
