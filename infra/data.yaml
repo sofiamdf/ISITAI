@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: isitai - historial de análisis y caché de resultados
+Resources:
+  HistoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: isitai-history
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: isitai
+  CacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: isitai-cache
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: cache_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cache_key
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: isitai
+Outputs:
+  HistoryTableName:
+    Value: !Ref HistoryTable
+    Export:
+      Name: isitai-HistoryTableName
+  CacheTableName:
+    Value: !Ref CacheTable
+    Export:
+      Name: isitai-CacheTableName

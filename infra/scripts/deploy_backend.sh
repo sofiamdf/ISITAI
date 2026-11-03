@@ -46,6 +46,11 @@ DEFAULT_MODEL=resnet18
 if [ -f "$MANIFEST" ]; then
   DEFAULT_MODEL=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["default_model"])' "$MANIFEST")
 fi
+
+CACHE_TABLE=${CACHE_TABLE:-$(out_opt isitai-data CacheTableName)}
+HISTORY_TABLE=${HISTORY_TABLE:-$(out_opt isitai-data HistoryTableName)}
+[ -z "$CACHE_TABLE" ] && echo "Aviso: sin tabla de caché (desplegá isitai-data primero para activarla)"
+
 package infra/api.yaml build/api.out.yaml
 deploy isitai-api build/api.out.yaml --parameter-overrides \
   ModelApiUrl="${URL%/}" ModelApiKey="$KEY" ModelId="$MODEL_ID" DefaultModel="$DEFAULT_MODEL" \

@@ -1,83 +1,87 @@
+'''Caché de resultados sobre DynamoDB (reemplaza a ElastiCache/Valkey).
+
+Misma interfaz que la versión con Valkey: result_key, get_result, put_result y ping.
+Si la caché falla, se registra y el análisis sigue sin ella.
+'''
 import json
 import logging
 import os
 import time
 
-from isitai import config
+import boto3
 
 log = logging.getLogger(__name__)
-_state = {'client': None, 'disabled_until': 0.0}
+
+_table = None
+_disabled_until = 0.0  
 
 
-def enabled():
-    return bool(config.CACHE_ENDPOINT)
+def _get_table():
+    global _table
+    if _table is None:
+        _table = boto3.resource('dynamodb').Table(os.environ['CACHE_TABLE'])
+    return _table
 
 
 def _available():
-    return enabled() and time.monotonic() >= _state['disabled_until']
+    return time.monotonic() >= _disabled_until
 
 
-def _trip(op):
-    log.warning('cache_%s_failed', op, exc_info=True)
-    _state['client'] = None
-    _state['disabled_until'] = time.monotonic() + 30
+def _trip():
+    global _disabled_until
+    _disabled_until = time.monotonic() + 30
 
 
-def _connect():
-    import valkey
-    from developer_toolkit_elasticache import ElastiCacheIAMAuthTokenProvider
-    from valkey.credentials import CredentialProvider
-
-    class IamCredentials(CredentialProvider):
-        def __init__(self, auth):
-            self._auth = auth
-
-        def get_credentials(self):
-            # Un token nuevo por conexión: los tokens IAM duran 15 minutos
-            return self._auth.user_id, self._auth.get_token()
-
-    auth = ElastiCacheIAMAuthTokenProvider(serverless_cache_name=config.CACHE_NAME, user_id=config.CACHE_USER,
-                                           region=os.environ.get('AWS_REGION'))
-    return valkey.ValkeyCluster(host=config.CACHE_ENDPOINT, port=6379, ssl=True,
-                                credential_provider=IamCredentials(auth),
-                                socket_connect_timeout=2, socket_timeout=1)
-
-
-def _client():
-    if _state['client'] is None:
-        _state['client'] = _connect()
-    return _state['client']
-
-
-def result_key(model_id, model, sha256):
-    return f'isitai:v1:{model_id}:{model}:{sha256}'
+def result_key(model_id, sha256):
+    return f'isitai:v1:{model_id}:{sha256}'
 
 
 def get_result(key, ttl_seconds):
+    '''Devuelve el resultado y renueva su TTL; None si no está, venció o la caché falla.'''
     if not _available():
         return None
     try:
-        raw = _client().getex(key, ex=ttl_seconds)
+        item = _get_table().get_item(Key={'cache_key': key}).get('Item')
+        if not item:
+            return None
+        now = int(time.time())
+        # DynamoDB borra por TTL con demora (hasta ~48 h): se vuelve a chequear acá.
+        if int(item['expires_at']) <= now:
+            return None
+        # Equivale al GETEX de Valkey: cada acierto renueva el TTL. Si falla, no importa.
+        try:
+            _get_table().update_item(
+                Key={'cache_key': key},
+                UpdateExpression='SET expires_at = :e',
+                ExpressionAttributeValues={':e': now + ttl_seconds},
+            )
+        except Exception:
+            log.warning('cache_renew_failed', exc_info=True)
+        return json.loads(item['value'])
     except Exception:
-        _trip('get')
+        log.warning('cache_get_failed', exc_info=True)
+        _trip()
         return None
-    return json.loads(raw) if raw else None
 
 
 def put_result(key, value, ttl_seconds):
     if not _available():
         return
     try:
-        _client().set(key, json.dumps(value), ex=ttl_seconds)
+        _get_table().put_item(Item={
+            'cache_key': key,
+            'value': json.dumps(value), 
+            'expires_at': int(time.time()) + ttl_seconds,
+        })
     except Exception:
-        _trip('set')
+        log.warning('cache_set_failed', exc_info=True)
+        _trip()
 
 
 def ping():
-    if not enabled():
-        return None
     try:
-        return bool(_client().ping())
+        _get_table().get_item(Key={'cache_key': '__ping__'})
+        return True
     except Exception:
-        _trip('ping')
+        log.warning('cache_ping_failed', exc_info=True)
         return False

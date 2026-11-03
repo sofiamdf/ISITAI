@@ -18,10 +18,10 @@ Parameters:
     Type: String
     Default: resnet18
     AllowedValues: [mlp, cnn, resnet18]
-  CacheEndpoint:
+  CacheTable:
     Type: String
     Default: ''
-    Description: Endpoint de la caché Valkey. Vacío = sin caché.
+    Description: Tabla DynamoDB de la caché de resultados. Vacío = sin caché.
   HistoryTable:
     Type: String
     Default: ''
@@ -33,14 +33,6 @@ Parameters:
 Conditions:
   HasWebOrigin: !Not [!Equals [!Ref AllowedOrigin, '']]
 Resources:
-  DepsLayer:
-    Type: AWS::Lambda::LayerVersion
-    Properties:
-      LayerName: isitai-deps
-      Description: boto3, valkey y el toolkit de ElastiCache para python3.14 arm64
-      Content: ../build/deps-layer
-      CompatibleRuntimes: [python3.14]
-      CompatibleArchitectures: [arm64]
   AnalyzeFunction:
     Type: AWS::Lambda::Function
     Properties:
