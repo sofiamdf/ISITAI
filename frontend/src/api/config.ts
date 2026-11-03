@@ -9,3 +9,6 @@ export const USE_FAKE_API: boolean = import.meta.env.VITE_USE_FAKE_API === 'true
 // Límites que el backend también valida (la web los chequea antes para ahorrar un pedido).
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MiB
 export const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+// Cuántas filas del historial se piden por vez (el backend acepta de 1 a 50).
+export const HISTORY_PAGE_SIZE = 10;

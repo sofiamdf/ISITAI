@@ -15,6 +15,25 @@ export interface AnalysisResult {
   analyzed_at: string;
 }
 
+export interface HistoryItem {
+  requested_at: string;
+  request_id: string;
+  sha256: string;
+  label: Label;
+  prob_ai: number;
+  cache_hit: boolean;
+  latency_ms: number;
+  // opcionales
+  file_name?: string;
+  model?: ModelName;
+  model_version?: string;
+}
+
+export interface HistoryPage {
+  items: HistoryItem[]; // del más nuevo al más viejo
+  next_cursor: string | null; // se manda como ?cursor= para pedir la página siguiente
+}
+
 export interface ModelInfo {
   id: ModelName;
   version: string;
