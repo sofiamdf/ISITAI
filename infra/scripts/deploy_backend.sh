@@ -54,7 +54,7 @@ HISTORY_TABLE=$(out isitai-data HistoryTableName)
 package infra/api.yaml build/api.out.yaml
 deploy isitai-api build/api.out.yaml --parameter-overrides \
   ModelApiUrl="${URL%/}" ModelApiKey="$KEY" ModelId="$MODEL_ID" DefaultModel="$DEFAULT_MODEL" \
-  CacheEndpoint="${CACHE_ENDPOINT:-}" HistoryTable="${HISTORY_TABLE:-}" AllowedOrigin="${ALLOWED_ORIGIN:-}"
+  CacheTable="$CACHE_TABLE" HistoryTable="${HISTORY_TABLE:-}" AllowedOrigin="${ALLOWED_ORIGIN:-}"
 
 API=$(out isitai-api ApiUrl)
 echo "API: $API  (modelo: $MODEL_ID)"
