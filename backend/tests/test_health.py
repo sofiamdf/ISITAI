@@ -11,7 +11,7 @@ def mock_up(serve, monkeypatch):
     monkeypatch.setenv('MOCK_API_KEY', 'clave')
     monkeypatch.setattr(config, 'MODEL_API_URL', serve(mock.handler))
     monkeypatch.setattr(config, 'MODEL_API_KEY', 'clave')
-    monkeypatch.setattr(config, 'CACHE_ENDPOINT', '')
+    monkeypatch.setattr(config, 'CACHE_TABLE', '')
     monkeypatch.setattr(config, 'HISTORY_TABLE', '')
 
 
@@ -45,7 +45,7 @@ def test_degraded_when_history_fails(mock_up, monkeypatch):
 
 def test_down_when_model_unreachable(monkeypatch):
     monkeypatch.setattr(config, 'MODEL_API_URL', 'http://127.0.0.1:9')
-    monkeypatch.setattr(config, 'CACHE_ENDPOINT', '')
+    monkeypatch.setattr(config, 'CACHE_TABLE', '')
     monkeypatch.setattr(config, 'HISTORY_TABLE', '')
     status, body = parse(health.handler({}, Ctx()))
     assert status == 503 and body['status'] == 'down' and body['models'] == []
