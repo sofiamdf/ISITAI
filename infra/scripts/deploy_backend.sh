@@ -47,6 +47,7 @@ if [ -f "$MANIFEST" ]; then
   DEFAULT_MODEL=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["default_model"])' "$MANIFEST")
 fi
 
+deploy isitai-data infra/data.yaml
 CACHE_TABLE=$(out isitai-data CacheTableName)
 HISTORY_TABLE=$(out isitai-data HistoryTableName)
 
