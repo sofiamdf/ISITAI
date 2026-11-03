@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Uso, desde la raíz del repo en CloudShell: bash infra/scripts/deploy_backend.sh
-# Variables opcionales: MODEL=real|mock (real por defecto), CACHE_ENDPOINT y HISTORY_TABLE
+# Variables opcionales: MODEL=real|mock (real por defecto), CACHE_TABLE y HISTORY_TABLE
 # (vacías = sin caché / sin historial), ALLOWED_ORIGIN (URL de CloudFront, para CORS)
 set -euo pipefail
 cd "$(dirname "$0")/../.."
