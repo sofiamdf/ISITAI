@@ -32,9 +32,8 @@ def _trip():
     _disabled_until = time.monotonic() + 30
 
 
-def result_key(model_id, sha256):
-    return f'isitai:v1:{model_id}:{sha256}'
-
+def result_key(model_id, model, sha256):
+    return f'isitai:v1:{model_id}:{model}:{sha256}'
 
 def get_result(key, ttl_seconds):
     '''Devuelve el resultado y renueva su TTL; None si no está, venció o la caché falla.'''
