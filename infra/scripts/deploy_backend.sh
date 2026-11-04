@@ -21,6 +21,10 @@ if [ ! -f "$MANIFEST" ] && [ "$MODEL" != mock ]; then
 fi
 aws s3api head-bucket --bucket "$ARTIFACTS" 2>/dev/null || aws s3 mb "s3://$ARTIFACTS" --region "$REGION"
 
+mkdir -p build
+deploy isitai-base infra/base.yaml
+ALLOWED_ORIGIN=${ALLOWED_ORIGIN:-$(out isitai-base WebUrl)}
+
 KEY=$(aws ssm get-parameter --name /isitai/model/api-key --with-decryption --query Parameter.Value --output text 2>/dev/null || true)
 if [ -z "$KEY" ]; then
   KEY=$(openssl rand -hex 24)
