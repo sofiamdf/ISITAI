@@ -51,4 +51,4 @@ WEB_URL="$(aws cloudformation describe-stacks --stack-name "$BASE_STACK" --regio
 
 echo
 echo "Listo. Web: ${WEB_URL:-http://$BUCKET.s3-website-$REGION.amazonaws.com}"
-echo "Recordá que la API tiene que desplegarse con ALLOWED_ORIGIN igual a esa URL (sin barra final)."
+#echo "Recordá que la API tiene que desplegarse con ALLOWED_ORIGIN igual a esa URL (sin barra final)."

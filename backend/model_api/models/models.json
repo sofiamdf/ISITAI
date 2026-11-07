@@ -6,35 +6,35 @@
   ],
   "default_model": "resnet18",
   "uncertain_band": 0.1,
-  "exported_at": "2026-10-31",
+  "exported_at": "2026-11-03",
   "preprocess_sha256": "f86577849a1b4c0e6b4ccd36a00f9d2da0f0ac05b027ded4557d38ffe7333b49",
   "models": {
     "mlp": {
       "file": "mlp.onnx",
-      "version": "humo-artifact-mlp@2026-10-31",
+      "version": "artifact-mlp-wd1e-2@2026-11-03",
       "input_size": 200,
       "jpeg_quality": 90,
       "input_name": "input",
       "output_name": "logits",
-      "sha256": "340b168b49acd3b2b88d3f7149e9c6012eb6544265eb766d80b7bc9ef0727db9"
+      "sha256": "ae92f335a37e86161c8cd775a91ccfcde485f9d3039c87d1d550d9c61beefd40"
     },
     "cnn": {
       "file": "cnn.onnx",
-      "version": "humo-artifact-cnn@2026-10-31",
+      "version": "artifact-cnn-c64@2026-11-03",
       "input_size": 200,
       "jpeg_quality": 90,
       "input_name": "input",
       "output_name": "logits",
-      "sha256": "cb17cc826e6d39592b57e30614d9cd7b31701ce5bb3b4e41e1f0b34644ec494e"
+      "sha256": "68309bf27c1cbcc017270a933e9a46e2490d87637ccbce2b36c650e0d6dcd97e"
     },
     "resnet18": {
       "file": "resnet18.onnx",
-      "version": "humo-artifact-resnet18@2026-10-31",
+      "version": "artifact-resnet18-lr1e-4@2026-11-03",
       "input_size": 200,
       "jpeg_quality": 90,
       "input_name": "input",
       "output_name": "logits",
-      "sha256": "b3dc98680d4fa18f963cc1591adb3de9ac4d0c558e4d33cc48462900743b9d2e"
+      "sha256": "e20629d2973a1e46d3e8eabc00d412b0f577de699e8a9fdd696976356dfbecb9"
     }
   }
 }
