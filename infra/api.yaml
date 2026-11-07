@@ -29,7 +29,7 @@ Parameters:
   AllowedOrigin:
     Type: String
     Default: ''
-    Description: URL de CloudFront (https://dxxxx.cloudfront.net). Vacío en cuentas sin web publicada.
+    Description: URL de la web (WebUrl de isitai-base). Vacío en cuentas sin web publicada.
 Conditions:
   HasWebOrigin: !Not [!Equals [!Ref AllowedOrigin, '']]
 Resources:

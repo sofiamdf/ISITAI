@@ -50,7 +50,7 @@ def save(session_id, requested_at, item):
 
 def _decode_cursor(cursor):
     try:
-        key = json.loads(base64.urlsafe_b64decode(cursor.encode()))
+        key = json.loads(base64.urlsafe_b64decode(cursor.encode() + b'=' * (-len(cursor) % 4)))
     except (binascii.Error, UnicodeDecodeError, ValueError) as exc:
         raise ValueError('cursor inválido') from exc
     if not isinstance(key, dict) or set(key) != {'session_id', 'sk'}:
@@ -60,7 +60,9 @@ def _decode_cursor(cursor):
 
 def list_for_session(session_id, limit=20, cursor=None):
     from boto3.dynamodb.conditions import Key
-    params = {'KeyConditionExpression': Key('session_id').eq(session_id), 'ScanIndexForward': False, 'Limit': limit}
+    # La web pide el historial justo después de analizar: sin esto puede faltar la última fila
+    params = {'KeyConditionExpression': Key('session_id').eq(session_id), 'ScanIndexForward': False, 'Limit': limit,
+              'ConsistentRead': True}
     if cursor:
         start = _decode_cursor(cursor)
         if start['session_id'] != session_id:
@@ -68,5 +70,6 @@ def list_for_session(session_id, limit=20, cursor=None):
         params['ExclusiveStartKey'] = start
     response = _table().query(**params)
     last_key = response.get('LastEvaluatedKey')
-    next_cursor = base64.urlsafe_b64encode(json.dumps(last_key).encode()).decode() if last_key else None
+    # Sin el relleno "=", el cursor viaja igual en la URL esté o no codificada
+    next_cursor = base64.urlsafe_b64encode(json.dumps(last_key).encode()).decode().rstrip('=') if last_key else None
     return response['Items'], next_cursor

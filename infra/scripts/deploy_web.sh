@@ -21,6 +21,13 @@ if ! aws s3api head-bucket --bucket "$BUCKET" --region "$REGION" 2>/dev/null; th
   exit 1
 fi
 
+# Vite 8 pide Node ^20.19 o >=22.12: si CloudShell trae uno más viejo, se usa uno temporal en /tmp.
+if ! node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a==22&&b>=12)||(a==20&&b>=19)?0:1)' 2>/dev/null; then
+  NODE=node-v22.20.0-linux-x64
+  curl -fsSL "https://nodejs.org/dist/v22.20.0/$NODE.tar.gz" | tar -xz -C /tmp
+  export PATH="/tmp/$NODE/bin:$PATH"
+fi
+
 echo "==> Compilando la web (API: $API_URL)"
 cd "$ROOT/frontend"
 npm ci
@@ -44,4 +51,4 @@ WEB_URL="$(aws cloudformation describe-stacks --stack-name "$BASE_STACK" --regio
 
 echo
 echo "Listo. Web: ${WEB_URL:-http://$BUCKET.s3-website-$REGION.amazonaws.com}"
-echo "Recordá que la API tiene que desplegarse con ALLOWED_ORIGIN igual a esa URL (sin barra final)."
+#echo "Recordá que la API tiene que desplegarse con ALLOWED_ORIGIN igual a esa URL (sin barra final)."

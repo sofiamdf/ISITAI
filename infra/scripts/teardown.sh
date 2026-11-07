@@ -18,6 +18,9 @@ if [ "${1:-}" != "--yes" ]; then
   [ "$answer" = "$ACCOUNT" ] || { echo "Cancelado."; exit 1; }
 fi
 
+# empty_bucket usa boto3: si falta, se instala antes de borrar nada para no cortar a mitad de camino.
+python3 -c 'import boto3' 2>/dev/null || python3 -m pip install --user --quiet boto3
+
 stack_exists() { aws cloudformation describe-stacks --stack-name "$1" > /dev/null 2>&1; }
 bucket_exists() { aws s3api head-bucket --bucket "$1" > /dev/null 2>&1; }
 
