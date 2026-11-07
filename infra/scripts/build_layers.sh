@@ -12,6 +12,5 @@ layer() {
   build/.venv/bin/pip install "${FLAGS[@]}" --target "build/$1/python" -r "$2"
   find "build/$1" -name __pycache__ -prune -exec rm -rf {} +
 }
-layer deps-layer backend/requirements.txt
 layer model-layer backend/model_api/requirements.txt
-du -sh build/deps-layer build/model-layer backend/model_api
+du -sh build/model-layer backend/model_api
