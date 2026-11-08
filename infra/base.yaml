@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: isitai - buckets S3 (web con website hosting y dataset)
+Description: isitai - buckets S3 (web por HTTPS y dataset)
 
 Resources:
   WebBucket:
@@ -14,9 +14,6 @@ Resources:
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
-      WebsiteConfiguration:
-        IndexDocument: index.html
-        ErrorDocument: index.html
       Tags:
         - Key: Project
           Value: isitai
@@ -33,6 +30,16 @@ Resources:
             Principal: '*'
             Action: s3:GetObject
             Resource: !Sub ${WebBucket.Arn}/*
+          - Sid: DenyHttp
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt WebBucket.Arn
+              - !Sub ${WebBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
 
   DatasetBucket:
     Type: AWS::S3::Bucket
@@ -63,4 +70,6 @@ Outputs:
   DatasetBucket:
     Value: !Ref DatasetBucket
   WebUrl:
-    Value: !GetAtt WebBucket.WebsiteURL
+    Value: !Sub https://${WebBucket}.s3.${AWS::Region}.${AWS::URLSuffix}/index.html
+  WebOrigin:
+    Value: !Sub https://${WebBucket}.s3.${AWS::Region}.${AWS::URLSuffix}

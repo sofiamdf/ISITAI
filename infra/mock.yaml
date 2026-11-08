@@ -10,6 +10,13 @@ Parameters:
     Type: Number
     Default: 800
     Description: Demora simulada de la inferencia, en milisegundos
+  ReservedConcurrency:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    Description: Entornos reservados para la función (tope y garantía); 0 = sin reserva
+Conditions:
+  HasReservedConcurrency: !Not [!Equals [!Ref ReservedConcurrency, '0']]
 Resources:
   MockFunction:
     Type: AWS::Lambda::Function
@@ -22,6 +29,7 @@ Resources:
       Code: ../backend/mock_model
       MemorySize: 256
       Timeout: 10
+      ReservedConcurrentExecutions: !If [HasReservedConcurrency, !Ref ReservedConcurrency, !Ref AWS::NoValue]
       Environment:
         Variables:
           MOCK_API_KEY: !Ref MockApiKey

@@ -6,6 +6,13 @@ Parameters:
     NoEcho: true
     MinLength: 16
     Description: Clave que el backend manda en X-Api-Key
+  ReservedConcurrency:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    Description: Entornos reservados para la función (tope y garantía); 0 = sin reserva
+Conditions:
+  HasReservedConcurrency: !Not [!Equals [!Ref ReservedConcurrency, '0']]
 Resources:
   ModelDepsLayer:
     Type: AWS::Lambda::LayerVersion
@@ -27,6 +34,7 @@ Resources:
       Layers: [!Ref ModelDepsLayer]
       MemorySize: 2048
       Timeout: 20
+      ReservedConcurrentExecutions: !If [HasReservedConcurrency, !Ref ReservedConcurrency, !Ref AWS::NoValue]
       Environment:
         Variables:
           MODEL_API_KEY: !Ref ModelApiKey

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Uso, desde la raíz del repo en CloudShell: bash infra/scripts/deploy_backend.sh
 # Variables opcionales: MODEL=real|mock (real por defecto),
-# ALLOWED_ORIGIN (URL de la web, para CORS; por defecto, la WebUrl de isitai-base)
+# ALLOWED_ORIGIN (origen de la web, para CORS; por defecto, el WebOrigin de isitai-base)
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 MODEL=${MODEL:-real}
@@ -23,7 +23,7 @@ aws s3api head-bucket --bucket "$ARTIFACTS" 2>/dev/null || aws s3 mb "s3://$ARTI
 
 mkdir -p build
 deploy isitai-base infra/base.yaml
-ALLOWED_ORIGIN=${ALLOWED_ORIGIN:-$(out isitai-base WebUrl)}
+ALLOWED_ORIGIN=${ALLOWED_ORIGIN:-$(out isitai-base WebOrigin)}
 
 KEY=$(aws ssm get-parameter --name /isitai/model/api-key --with-decryption --query Parameter.Value --output text 2>/dev/null || true)
 if [ -z "$KEY" ]; then
@@ -31,12 +31,16 @@ if [ -z "$KEY" ]; then
   aws ssm put-parameter --name /isitai/model/api-key --type SecureString --value "$KEY" > /dev/null
 fi
 
+RESERVED=40
+LIMIT=$(aws lambda get-account-settings --query AccountLimit.ConcurrentExecutions --output text)
+[ "$LIMIT" -ge $((RESERVED * 2 + 100)) ] || RESERVED=0
+
 bash infra/scripts/build_layers.sh
 package infra/mock.yaml build/mock.out.yaml
-deploy isitai-mock build/mock.out.yaml --parameter-overrides MockApiKey="$KEY"
+deploy isitai-mock build/mock.out.yaml --parameter-overrides MockApiKey="$KEY" ReservedConcurrency="$RESERVED"
 if [ -f "$MANIFEST" ]; then
   package infra/model.yaml build/model.out.yaml
-  deploy isitai-model build/model.out.yaml --parameter-overrides ModelApiKey="$KEY"
+  deploy isitai-model build/model.out.yaml --parameter-overrides ModelApiKey="$KEY" ReservedConcurrency="$RESERVED"
 fi
 
 if [ "$MODEL" = mock ]; then
