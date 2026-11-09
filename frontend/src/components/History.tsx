@@ -3,7 +3,7 @@ import { ApiError, friendlyMessage, getHistory } from '../api/client';
 import { HISTORY_PAGE_SIZE } from '../api/config';
 import type { HistoryItem, Label } from '../api/types';
 
-const SHORT: Record<Label, string> = { ai: 'IA', real: 'Real', uncertain: 'Incierto' };
+const SHORT: Record<Label, string> = { ai: 'IA', real: 'Real', uncertain: 'No concluyente' };
 
 interface Problem {
   disabled: boolean; // true cuando el despliegue no tiene tabla de historial (no es un fallo)
@@ -90,7 +90,7 @@ export default function History({ refreshKey }: { refreshKey: number }) {
               <span className="history-name" title={item.file_name}>
                 {item.file_name || 'Sin nombre'}
               </span>
-              <span className="history-verdict">
+              <span className={`history-verdict history-verdict-${item.label}`}>
                 {SHORT[item.label]} · {Math.round(item.prob_ai * 100)}% IA
               </span>
               <span className="history-meta">

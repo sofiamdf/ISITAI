@@ -19,7 +19,7 @@ const FRIENDLY: Record<string, string> = {
   unsupported_type: 'Solo se aceptan imágenes JPEG, PNG o WebP.',
   content_mismatch: 'El contenido del archivo no coincide con su tipo. ¿Es una imagen válida?',
   empty_body: 'El archivo está vacío.',
-  too_large: 'La imagen supera el máximo de 4 MiB.',
+  too_large: 'La imagen supera el máximo de 4 MiB. Intentá de nuevo con una imagen más pequeña.',
   model_error: 'El modelo falló al analizar la imagen. Probá de nuevo.',
   model_timeout: 'El modelo tardó demasiado en responder. Probá de nuevo en un rato.',
   rate_limited: 'Demasiados pedidos seguidos. Esperá unos segundos.',
