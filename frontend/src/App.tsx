@@ -4,10 +4,29 @@ import { analyzeImage, friendlyMessage, getHealth, validateImage } from './api/c
 import type { AnalysisResult, Health, ModelName } from './api/types';
 import History from './components/History';
 import ImagePicker from './components/ImagePicker';
+import ModelSelect from './components/ModelSelect';
 import ResultCard from './components/ResultCard';
 import StatusBanner from './components/StatusBanner';
 
 export default function App() {
+  const subtitle = '¿Esta imagen es real o la generó una IA?';
+  const [typedSubtitle, setTypedSubtitle] = useState(() =>
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ? subtitle : '',
+  );
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let character = 0;
+    const timer = window.setInterval(() => {
+      character += 1;
+      setTypedSubtitle(subtitle.slice(0, character));
+      if (character >= subtitle.length) window.clearInterval(timer);
+    }, 60);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   // Estado del servicio (GET /v1/health)
   const [health, setHealth] = useState<Health | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
@@ -45,6 +64,10 @@ export default function App() {
   function handleFile(chosen: File) {
     const problem = validateImage(chosen);
     if (problem) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setFile(null);
+      setPreviewUrl(null);
+      setResult(null);
       setError(problem);
       return;
     }
@@ -74,9 +97,19 @@ export default function App() {
 
   return (
     <main className="app">
-      <header>
-        <h1>ISITAI</h1>
-        <p className="subtitle">¿Esta imagen es real o la generó una IA?</p>
+      <header className="app-header">
+        <div className="brand-frame">
+          <img className="brand-logo" src="/isitai-logo-display.png" alt="ISITAI" />
+        </div>
+        <h1 className="visually-hidden">ISITAI</h1>
+        <p className="subtitle" aria-label={subtitle}>
+          <span className="subtitle-typed" aria-hidden="true">
+            {typedSubtitle}
+          </span>
+          {typedSubtitle.length < subtitle.length && (
+            <span className="typing-caret" aria-hidden="true" />
+          )}
+        </p>
       </header>
 
       <StatusBanner
@@ -88,37 +121,41 @@ export default function App() {
         }}
       />
 
-      <div className="field">
-        <label htmlFor="model">Modelo</label>
-        <select
-          id="model"
-          value={model}
-          disabled={!health || loading}
-          onChange={(e) => setModel(e.target.value as ModelName)}
-        >
-          {!health && <option value="">Cargando…</option>}
-          {health?.models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.id}
-              {m.id === health.default_model ? ' (predeterminado)' : ''}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <ImagePicker file={file} previewUrl={previewUrl} disabled={loading} onFile={handleFile} />
-
-      <button type="button" className="btn btn-primary" disabled={!canAnalyze} onClick={handleAnalyze}>
-        {loading ? 'Analizando…' : 'Analizar imagen'}
-      </button>
-
-      {error && (
-        <div className="banner banner-error" role="alert">
-          {error}
+      <section className="analysis-panel" aria-label="Analizar imagen">
+        <div className="field">
+          <label htmlFor="model">Modelo</label>
+          <ModelSelect
+            models={health?.models ?? []}
+            value={model}
+            defaultModel={health?.default_model ?? null}
+            disabled={!health || loading}
+            onChange={setModel}
+          />
         </div>
-      )}
 
-      {result && <ResultCard result={result} />}
+        <ImagePicker file={file} previewUrl={previewUrl} disabled={loading} onFile={handleFile} />
+
+        {file && (
+          <button
+            type="button"
+            className={`btn btn-primary${loading ? ' btn-loading' : ''}`}
+            disabled={!canAnalyze}
+            aria-busy={loading}
+            onClick={handleAnalyze}
+          >
+            {loading && <span className="button-spinner" aria-hidden="true" />}
+            {loading ? 'Analizando…' : 'Analizar imagen'}
+          </button>
+        )}
+
+        {error && (
+          <div className="banner banner-error" role="alert">
+            {error}
+          </div>
+        )}
+
+        {result && <ResultCard result={result} />}
+      </section>
       <History refreshKey={historyKey} />
     </main>
   );
